@@ -5,7 +5,7 @@
 #      FILE    : vocabulary2.py                                                 #
 #      ABOUT   : 単語間隔反復ソフト（重要度の概念を含む）                           #
 #      VERSION : 3.5                                                            #
-#      DATE    : 18/10/30                                                       #
+#      DATE    : 18/11/13                                                       #
 #      Author   : てねてんね                                                     #
 #                                                                               #
 #################################################################################
@@ -26,7 +26,7 @@ import pandas as pd
 
 # global variance --------------------------------------------------------------
 wordList = []
-wordListFinish=[]
+wordListOfY=[]
 is_quit = False
 is_fileOpenFirst=0
 colorama.init(autoreset=True)
@@ -34,6 +34,8 @@ is_J2D=0
 
 
 # constant declaration ---------------------------------------------------------
+FALSE=0
+TRUE=1
 NOTNULL='1'
 IMPO_Y=1
 IMPO_N=2
@@ -64,12 +66,12 @@ class Word:
 
 
 # input()のtry-except　---------------------------------------------------------
-def inputtry(stringdata):
+def inputTry(stringdata):
     try:
         ans=input(stringdata)
         return ans
     except EOFError:
-        inputtry(stringdata)
+        inputTry(stringdata)
 
 
 # アカウントの承認 --------------------------------------------------------------
@@ -130,82 +132,84 @@ def Message():
 
 
 # 単語を提示する関数 -------------------------------------------------------------
-def ShowWordlist(m, wordList):
-    global is_quit,is_random,firstLenWordList,rateFirst,NumOfImportance9_1,NumOfImportance9_2,is_J2D
+def ShowWordlist(times, wordList):
+    global is_quit,is_random,firstLenWordList,rateFirst,NumPfImportance9_J2D,NumOfImportance9_D2J,is_J2D
     if is_quit: return
 
-    # print("\n～%d周目～" %m)
-    if 1<=m<=3:
-        list=["1st", "2nd","3rd"]
-        print("***",list[m-1],"time ***")
+    # print("\n～%d周目～" %times)
+    if 1<=times<=3:
+        list=["1st", "2nd", "3rd"]
+        print("***",list[times-1],"time ***")
     else:
-        print("***",str(m)+"th time ***")
+        print("***",str(times)+"th time ***")
 
     if is_random:
         RandomShaffle(wordList)
 
-    NumOfImportance9=NumOfImportance9_1 if is_J2D else NumOfImportance9_2
+    NumOfImportance9=NumPfImportance9_J2D if is_J2D else NumOfImportance9_D2J
 
-    counter=0
-    wordListAgain=[]
+    index=0
+    nextWordList=[]
     for i in range(len(wordList)):      # リスト内の単語を順番に処理する
-        counter+=1
+        index+=1
         while 1:        # ユーザから正しい反応が得られるまで繰り返す
             if wordList[i].importance<10:
-                counter-=1
+                index-=1
                 break
-            if m==1:
-                print("%d/%d  %s" % (counter, len(wordList)-NumOfImportance9, wordList[i].word))
+            if times==1:
+                print(str(index), "/", str(len(wordList)-NumOfImportance9), str(wordList[i].word))
             else:
-                print("%d/%d  %s" % (i + 1, len(wordList), wordList[i].word))
-            answer = inputtry("answer : ")
+                print(str(i + 1), "/", str(len(wordList)), str(wordList[i].word))
+            answer = inputTry("answer : ")
 
             if answer =='y':
-                # print("もう覚えてますね。\n")
                 # print("意味：%s\n" % wordList[i].meaning)
-                print("Meaning："+ColorChangeOfWord(str(wordList[i].meaning))+wordList[i].meaning+"\n")
                 wordList[i].importance -= IMPO_Y
-                wordListFinish.append(wordList[i])
-                if (i==len(wordList)-1 and m>=2) or (counter==len(wordList)-NumOfImportance9 and m==1):
-                    if inputtry('Last : ') in ['r', 'n']:
+                print("Meaning：", ColorChangeOfWord(str(wordList[i].meaning))+wordList[i].meaning)
+                print("Importnce :", str(wordList[i].importance), "\n")
+                wordListOfY.append(wordList[i])
+                if (i==len(wordList)-1 and times>=2) or (index==len(wordList)-NumOfImportance9 and times==1):
+                    if inputTry('Last : ') in ['r', 'n']:
                         # print("%sの評価をyからnに変更しました。\n" % wordList[i].word)
-                        print("%s's estimation was changed into 'n' from 'y'\n" % wordListFinish[-1].word)
-                        wordListFinish[-1].importance += IMPO_N
-                        wordListAgain.append(wordList[i])
+                        wordListOfY[-1].importance += IMPO_N + IMPO_Y
+                        print("The estimation of", wordListOfY[-1].word, "was changed into 'n' from 'y'\n")
+                        print("Importnce :", str(wordList[i].importance), "\n")
+                        nextWordList.append(wordList[i])
                 break
             elif answer == 'n' :
-                # print("まだ覚えてないですね。\n")
                 # print("意味：%s\n" % wordList[i].meaning)
-                print("Meaning："+ColorChangeOfWord(str(wordList[i].meaning))+wordList[i].meaning+"\n")
                 wordList[i].importance += IMPO_N
-                wordListAgain.append(wordList[i])
+                print("Meaning：", ColorChangeOfWord(str(wordList[i].meaning))+wordList[i].meaning)
+                print("Importnce :", str(wordList[i].importance),"\n")
+                nextWordList.append(wordList[i])
                 break
-            elif answer == 'q' or is_quit:        # 強制終了
+            elif answer == 'q' or is_quit:
                 is_quit = True
                 return
-            elif answer == 'r' and i > 0 and wordList[i - 1] not in wordListAgain:
+            elif answer == 'r' and i > 0 and wordList[i - 1] not in nextWordList:
                 # print("%sの評価をyからnに変更しました。\n" % wordList[i - 1].word)
-                print("%s's estimation was changed into 'n' from 'y'\n" % wordListFinish[-1].word)
-                wordListFinish[-1].importance += IMPO_N
-                wordListAgain.append(wordList[i - 1])
-            else:       # 正しい答えが得られなかったとき
+                wordListOfY[-1].importance += IMPO_N + IMPO_Y
+                print("The estimation of", wordListOfY[-1].word, "was changed into 'n' from 'y'\n")
+                print("Importnce :", str(wordList[i].importance), "\n")
+                nextWordList.append(wordList[i - 1])
+            else:
                 # print("yかnかqかrで答えてください\n")
-                print("Ansewer with 'y' 'n', 'q', or 'r'\n")
+                print("Ansewer with 'y', 'n', 'q', or 'r'\n")
 
-    m+=1
-    if len(wordListAgain):      # 再帰処理
-        rate = 100 - 100 * len(wordListAgain) / firstLenWordList
-        if m==2:
+    times+=1
+    if len(nextWordList):
+        rate = 100 - 100 * len(nextWordList) / firstLenWordList
+        if times==2:
             rateFirst="{0:.1f}".format(rate)
         # print("暗記率：%s %%" % "{0:.1f}".format(rate))
         print("You have already remembered：%s %%\n" % "{0:.1f}".format(rate))
         # print("まだ覚えていないのは以下の単語です\n")
-        # for i in range(len(wordListAgain)):
-        #     print("%s" % wordListAgain[i].word, end="")
-        #     if i != len(wordListAgain) - 1:
+        # for i in range(len(nextWordList)):
+        #     print("%s" % nextWordList[i].word, end="")
+        #     if i != len(nextWordList) - 1:
         #         print(", ", end="")
-        ShowWordlist(m, wordListAgain)
-    elif m==2:
+        ShowWordlist(times, nextWordList)
+    elif times==2:
         rateFirst="100"
 
 
@@ -215,12 +219,12 @@ def FileOpen():
     # print("\n-------------------------")
     # print("      ファイル名入力     ")
     # print("-------------------------")
-    if is_fileOpenFirst==0:
-        is_fileOpenFirst==1
+    if is_fileOpenFirst==FALSE:
+        is_fileOpenFirst=TRUE
         print("\n-------------------------")
         print("      File name     ")
         print("-------------------------")
-    FILENAME=inputtry("File name : ")
+    FILENAME=inputTry("File name : ")
     return FILENAME
 
 
@@ -231,7 +235,7 @@ def OrderChange():
     # print("\n------ 順序変更しますか？ -----")
     print("\n------ Do you want to sort data? -----")
     # sort_answer = input("（ランダムシャッフル：r, 重要度並び替え：i, デフォルト：d）  :")
-    sort_answer=inputtry("(random shaffle：'r', sort by importance：'i', default：'d'）  :")
+    sort_answer=inputTry("(random shaffle：'r', sort by importance：'i', default：'d'）  :")
     is_random=sort_answer=="r"
     if sort_answer == "i":
         ImportanceSort()
@@ -261,7 +265,7 @@ def ObjectChange():
     global is_quit, is_J2D
     if is_quit: return
     # if input("問題と答えを入れ替えますか？(y or n) :") == "y":
-    if inputtry("Do you want to exchange questions and answers? ('y' or 'n') :") == 'y':
+    if inputTry("Do you want to exchange questions and answers? ('y' or 'n') :") == 'y':
         is_J2D=1
         for i in range(len(wordList)):
             wordList[i].word, wordList[i].meaning = wordList[i].meaning, wordList[i].word
@@ -278,15 +282,15 @@ def idOfFname(fname):
 
 # Sheetをimportしてword listを読み出す -------------------------------------------
 def ImportSheet(FILE):
-    global firstLenWordList,NumOfImportance9_1,NumOfImportance9_2,is_J2D
+    global firstLenWordList,NumPfImportance9_J2D,NumOfImportance9_D2J,is_J2D
     if idOfFname(FILE) == None:
         print("\n<No such Filename>")
         ImportSheet(FileOpen())
     else:
         print("Now loading...")
         response_r_value=read_data(idOfFname(FILE),'A1:D60',service)
-        NumOfImportance9_1=0
-        NumOfImportance9_2=0
+        NumPfImportance9_J2D=0
+        NumOfImportance9_D2J=0
         for j in range(len(response_r_value)):
             try:
                 wordList.append(Word(response_r_value[j][0], response_r_value[j][1],0,
@@ -302,9 +306,9 @@ def ImportSheet(FILE):
                                  int(response_r_value[j][2]),int(response_r_value[j][3]), j + 1))
 
             if int(response_r_value[j][2])<=DEFALUT_IMPORTANCE-1:
-                NumOfImportance9_1+=1
+                NumPfImportance9_J2D+=1
             if int(response_r_value[j][3])<=DEFALUT_IMPORTANCE-1:
-                NumOfImportance9_2+=1
+                NumOfImportance9_D2J+=1
         firstLenWordList=len(wordList)
 
 
@@ -322,7 +326,7 @@ def LsData():
 # ログに記録する関数 -------------------------------------------------------------
 def SaveLog(fileName):
     global rateFirst,is_J2D
-    if inputtry("Do you want to save? ('y' or 'n') : ")=='y':
+    if inputTry("Do you want to save? ('y' or 'n') : ")=='y':
         now=str(datetime.datetime.now())
         X2X='J2D' if is_J2D else 'D2J'
         append_data(LOGSSID,'A1:D100',[[now,fileName,rateFirst,X2X]],service)
@@ -331,7 +335,7 @@ def SaveLog(fileName):
 # 重要度を更新する関数------------------------------------------------------------------------------
 def UpdateImportance(fileName):
     global is_J2D
-    if inputtry("Do you want to update importance? ('y' or 'n') : ")=='y':
+    if inputTry("Do you want to update importance? ('y' or 'n') : ")=='y':
         wordListImportance=[[str(wordList[i].importance)] for i in range(len(wordList))]
         if is_J2D:
             write_data(idOfFname(fileName),'C1:100',wordListImportance,service)
@@ -344,16 +348,16 @@ def PrintLog():
     log_value=read_data(LOGSSID,'A1:E300',service)
 
     timeValue=[]
-    filenameValue=[]
+    fileNameValue=[]
     percentValue=[]
-    J2D=[]
-    times=[]
-    times_filename=[]
-    reset=[]
+    X2XValue=[]
+    timesValue=[]
+    times_fileName=[]
+    resetValue=[]
 
     for i in range(len(log_value)-1):
-        times_filename.append(str(log_value[i][1])+str(log_value[i][3]))
-        times.insert(0,times_filename.count(str(log_value[i][1])+str(log_value[i][3])))
+        times_fileName.append(str(log_value[i][1])+str(log_value[i][3]))
+        timesValue.insert(0,times_fileName.count(str(log_value[i][1])+str(log_value[i][3])))
 
     for i in range(len(log_value)-1,0,-1):
         if len(str(log_value[i][0]))==len("2018-09-17 2:51:41"):
@@ -364,18 +368,18 @@ def PrintLog():
         log_value[i][0]=log_value[i][0][5:13]
 
         timeValue.append(log_value[i][0])
-        filenameValue.append(log_value[i][1])
+        fileNameValue.append(log_value[i][1])
         percentValue.append(log_value[i][2])
-        J2D.append(log_value[i][3])
-        reset.append(log_value[i][4])
+        X2XValue.append(log_value[i][3])
+        resetValue.append(log_value[i][4])
 
     logdf=pd.DataFrame({
         str(log_value[0][0]) : timeValue,
-        str(log_value[0][1]) : filenameValue,
+        str(log_value[0][1]) : fileNameValue,
         str(log_value[0][2]) : percentValue,
-        str(log_value[0][3]) : J2D,
-        "times" : times,
-        str(log_value[0][4]) : reset
+        str(log_value[0][3]) : X2XValue,
+        "timesValue" : timesValue,
+        str(log_value[0][4]) : resetValue
     })
     print(logdf)
 
@@ -388,7 +392,7 @@ def PrintAndUpdate(fileName):
     except (ConnectionAbortedError, http.client.HTTPException,\
             socket.gaierror, httplib2.ServerNotFoundError) as error:
         print("\n<Software caused connection abort>\n")
-        if inputtry("Do you want to try again? : ")=='y':
+        if inputTry("Do you want to try again? : ")=='y':
             PrintAndUpdate(fileName)
 
 
@@ -430,14 +434,14 @@ def Selection(is_firstTime):
     print("- See available file names -> '1'")
     print("- Import a file -> '2'")
     print("- See the log -> '3'")
-    ans=inputtry("- See the contents of a file -> '4' : ")
+    ans=inputTry("- See the contents of a file -> '4' : ")
     if ans=='':
         Selection(NOTFIRSTTIME)
     elif ans==SEE_FILENAME:
         LsData()
         Selection(NOTFIRSTTIME)
     elif ans==IMPORT_FILE or any(ans[0]==x for x in ['d','e','c']) or ans=='test':
-        FILENAME=FileOpen() if ans=='2' else ans
+        FILENAME=FileOpen() if ans==IMPORT_FILE else ans
         ImportSheet(FILENAME)
         OrderChange()
         ObjectChange()
